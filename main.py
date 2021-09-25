@@ -18,22 +18,16 @@ def scraping(link, tag, class_name):
 
         if apartment_data:
             scraping_apartments.extend(apartment_data)
-            # scaled_value = random.randint(100, 1000)
-            # scaled_value = 1 + (value * (9 - 5))
+            # scaled_value = random.randint(2, 10)
             # time.sleep(scaled_value)
         else:
-            print('empty')
             break
         scraping_count += 1
-
     return scraping_apartments
 
 
 def parsing():
     """Parses taken data from scraping sites and searches needed info and objects."""
-    for url in sites:
-        apartments = scraping(sites[url]['link'], sites[url]['tag'], sites[url]['class_name'])
-
     count = 0
     while count <= 5:
         try:
@@ -48,16 +42,19 @@ def parsing():
             title = info.find(tags_for_searching_data[tag]['tag_for_title'],
                               tags_for_searching_data[tag]['class_for_title']).text.split()
             square = float(title[2].replace(',', '.'))
+            link = info.find(tags_for_searching_data[tag]['tag_for_url'],
+                             tags_for_searching_data[tag]['class_for_url'])
+            link = tags_for_searching_data[tag]['first_part_of_url'] + link.get('href')
             price_per_meter = price / square
 
             print(price)
             print(square)
             print(price_per_meter)
+            print(link)
         count += 1
 
 
 if __name__ == '__main__':
-
     sites = {
         'avito': {
             'link': 'https://www.avito.ru/tver/kvartiry/prodam/vtorichka-ASgBAQICAUSSA8YQAUDmBxSMUg?cd=',
@@ -73,4 +70,14 @@ if __name__ == '__main__':
             'class_for_title': {
                 'class': 'title-root-j7cja iva-item-title-_qCwt title-listRedesign-XHq38 title'
                          '-root_maxHeight-SXHes text-text-LurtD text-size-s-BxGpL text-bold-SinUO'},
+            'tag_for_url': 'a',
+            'class_for_url': {
+                'class': 'link-link-MbQDP link-design-default-_nSbv title-root-j7cja iva-item'
+                         '-title-_qCwt title-listRedesign-XHq38 title-root_maxHeight-SXHes'},
+            'first_part_of_url': 'https://www.avito.ru'
         }, }
+
+    for url in sites:
+        apartments = scraping(sites[url]['link'], sites[url]['tag'], sites[url]['class_name'])
+
+    parsing()
