@@ -1,8 +1,9 @@
 import random
+import time
 
 from bs4 import BeautifulSoup
+from models import Apartment, MarketPlace
 from requests import get
-import time
 
 OBJECTS_COUNT = 5
 PAGES_TO_PARSE = 1
