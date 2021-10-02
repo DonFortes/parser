@@ -1,3 +1,6 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import MarketPlace, Apartment
+
+admin.site.register(MarketPlace)
+admin.site.register(Apartment)
