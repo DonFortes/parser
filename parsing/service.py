@@ -1,16 +1,15 @@
 import json
-
+import os
+from my_parser.settings import OBJECTS_COUNT, PAGES_TO_PARSE, REDEMPTION_VALUE, BOT_TOKEN, CHAT_ID, bot
 import bs4
-from django.http import HttpResponse
-
-from .models import Apartment, MarketPlace
 import requests
 from bs4 import BeautifulSoup
-from loguru import logger
+from django.http import HttpResponse
+from dotenv import load_dotenv
 
-OBJECTS_COUNT = 5
-PAGES_TO_PARSE = 1
-REDEMPTION_VALUE = 38_000
+from parsing.models import Apartment, MarketPlace
+
+load_dotenv()
 
 
 class ScrapeClient:
@@ -98,7 +97,6 @@ class ParseAvito(Parse):
 
 
 def get_or_create_avito():
-    # json.dumps
     avito, _ = MarketPlace.objects.get_or_create(
         name="Avito",
         url="https://www.avito.ru/tver/kvartiry/prodam/vtorichka-ASgBAQICAUSSA8YQAUDmBxSMUg?cd=",
@@ -112,34 +110,19 @@ def get_or_create_avito():
         title_class=json.dumps(
             {
                 "class": "title-root-j7cja iva-item-title-_qCwt title-listRedesign-XHq38 title"
-                "-root_maxHeight-SXHes text-text-LurtD text-size-s-BxGpL text-bold-SinUO"
+                         "-root_maxHeight-SXHes text-text-LurtD text-size-s-BxGpL text-bold-SinUO"
             }
         ),
         url_tag="a",
         url_class=json.dumps(
             {
                 "class": "link-link-MbQDP link-design-default-_nSbv title-root-j7cja iva-item"
-                "-title-_qCwt title-listRedesign-XHq38 title-root_maxHeight-SXHes"
+                         "-title-_qCwt title-listRedesign-XHq38 title-root_maxHeight-SXHes"
             }
         ),
         url_first_part="https://www.avito.ru",
     )
     return avito
-
-
-# def notify_to_telegram(message, uid):
-#     bot_token = settings.TELEGRAM_BOT_TOKEN
-#     bot_chat_id = uid
-#     send_text = (
-#         "https://api.telegram.org/bot"
-#         + bot_token
-#         + "/sendMessage?chat_id="
-#         + bot_chat_id
-#         + "&parse_mode=Markdown&text="
-#         + message
-#     )
-#
-#     requests.get(send_text)
 
 
 def main(request):
@@ -166,6 +149,7 @@ def main(request):
                 price_per_meter=apartment["price_per_meter"],
             )
             if apartment_obj.price_per_meter <= REDEMPTION_VALUE:
-                # отправить в телеграм
-                pass
+                message = f'Я нашел новый объект: {apartment["url"]}'
+                bot.send_message(CHAT_ID, message)
+
     return HttpResponse("Nicely done")
