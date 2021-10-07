@@ -26,9 +26,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get("ENV_SECRET_KEY")
-OBJECTS_COUNT = 5
-PAGES_TO_PARSE = 1
-REDEMPTION_VALUE = 38_000
+PAGES_TO_PARSE = 100
+REDEMPTION_VALUE = 45_000
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 bot = Bot(token=BOT_TOKEN)

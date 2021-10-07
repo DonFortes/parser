@@ -36,6 +36,7 @@ class Apartment(models.Model):
     price_per_meter = models.DecimalField(
         max_digits=10, decimal_places=2, verbose_name="Цена за метр"
     )
+    time = models.TimeField()
 
     class Meta:
         verbose_name = "Объект недвижимости"
@@ -43,3 +44,14 @@ class Apartment(models.Model):
 
     def __srt__(self):
         return f"Объект: {self.name}"
+
+
+class Phrase(models.Model):
+    text = models.CharField(max_length=255, verbose_name="Фразы парсера")
+
+    class Meta:
+        verbose_name = "фразу парсера"
+        verbose_name_plural = "фраз парсера"
+
+    def __srt__(self):
+        return f"Фраза: {self.text}"
