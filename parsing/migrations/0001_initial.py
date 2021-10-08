@@ -28,7 +28,10 @@ class Migration(migrations.Migration):
                         max_length=255, verbose_name="Заголовок объявления"
                     ),
                 ),
-                ("url", models.URLField(verbose_name="Ссылка на площадку")),
+                (
+                    "url",
+                    models.URLField(unique=True, verbose_name="Ссылка на площадку"),
+                ),
                 (
                     "price",
                     models.PositiveIntegerField(verbose_name="Стоимость квартиры"),

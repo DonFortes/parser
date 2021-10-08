@@ -129,13 +129,20 @@ def get_or_create_avito():
     return avito
 
 
-def send_object_to_telegram(apartment, phrases):
+def send_object_to_telegram(apartment, phrases, difference=0, flag=1):
     """Sending found object url with funny bot phrase to telegram."""
-    random_phrase = random.choice(phrases)
-    message = (
-        f'{random_phrase.text} по цене {apartment["price_per_meter"]} за метр. '
-        f'Смотри тут: {apartment["url"]}'
-    )
+    if flag == 1:
+        random_phrase = random.choice(phrases)
+        message = (
+            f"{random_phrase.text} по цене {apartment['price_per_meter']}₽ за метр. "
+            f"Смотри тут: {apartment['url']}"
+        )
+    else:
+        message = (
+            f"Этот объект уже был в нашей базе. Его цена за метр изменилась на {difference} "
+            f"и стала {apartment['price_per_meter']}₽ за метр. "
+            f"Смотри тут: {apartment['url']}"
+        )
     bot.send_message(CHAT_ID, message)
     time.sleep(3)
 
@@ -154,9 +161,9 @@ def get_phrases_queryset():
     return phrases
 
 
-def create_apartment_object(apartment):
+def get_or_create_apartment_object(apartment):
     """Create Apartment-class object."""
-    apartment_object = Apartment.objects.create(
+    apartment_object = Apartment.objects.get_or_create(
         name=apartment["name"],
         url=apartment["url"],
         price=apartment["price"],
@@ -182,11 +189,30 @@ def processing_avito(phrases):
 
                 if apartment is not None:
                     if Apartment.objects.filter(url=apartment["url"]).exists():
-                        continue
+                        apartment_in_base = Apartment.objects.get(url=apartment["url"])
 
-                    apartment_object = create_apartment_object(apartment)
-                    if apartment_object.price_per_meter <= REDEMPTION_VALUE:
-                        send_object_to_telegram(apartment, phrases)
+                        if (
+                            apartment_in_base.price_per_meter
+                            == apartment["price_per_meter"]
+                        ):
+                            continue
+                        else:
+                            difference = (
+                                apartment["price_per_meter"]
+                                - apartment_in_base.price_per_meter
+                            )
+                            apartment_in_base.price_per_meter = apartment[
+                                "price_per_meter"
+                            ]
+                            apartment_in_base.save()
+                            if apartment["price_per_meter"] <= REDEMPTION_VALUE:
+                                send_object_to_telegram(
+                                    apartment, phrases, difference, flag=0
+                                )
+                    else:
+                        get_or_create_apartment_object(apartment)
+                        if apartment["price_per_meter"] <= REDEMPTION_VALUE:
+                            send_object_to_telegram(apartment, phrases)
             time.sleep(5)
         else:
             bot.send_message(
@@ -194,10 +220,10 @@ def processing_avito(phrases):
                 f"Парсер обошел {page_number} страниц. Больше ничего не найдено.",
             )
             break
-    return HttpResponse("Nicely done")
 
 
 def main(request):
     """Main function, that starts our service."""
     phrases = get_phrases_queryset()
     processing_avito(phrases)
+    return HttpResponse("Nicely done")

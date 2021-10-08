@@ -28,7 +28,7 @@ class MarketPlace(models.Model):
 
 class Apartment(models.Model):
     name = models.CharField(max_length=255, verbose_name="Заголовок объявления")
-    url = models.URLField(verbose_name="Ссылка на площадку")
+    url = models.URLField(unique=True, verbose_name="Ссылка на площадку")
     price = models.PositiveIntegerField(verbose_name="Стоимость квартиры")
     total_area = models.DecimalField(
         max_digits=10, decimal_places=2, verbose_name="Общая площадь"
