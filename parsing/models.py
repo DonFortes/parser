@@ -51,7 +51,7 @@ class Phrase(models.Model):
 
     class Meta:
         verbose_name = "фразу парсера"
-        verbose_name_plural = "фраз парсера"
+        verbose_name_plural = "фразы парсера"
 
     def __srt__(self):
         return f"Фраза: {self.text}"

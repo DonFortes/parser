@@ -1,11 +1,9 @@
 import json
-import os
 import random
 import time
 from datetime import datetime
 
 import bs4
-import loguru
 import requests
 from bs4 import BeautifulSoup
 from django.http import HttpResponse
@@ -44,19 +42,59 @@ class MarketPlaceProcessing:
 
     def __init__(self, telegram_client):
         self.telegram_client = telegram_client
+        self.tags = None
         """Method for overriding in each subclass."""
-
-    def get_or_create_market_place(self):
-        """Method for overriding in each subclass."""
-        pass
 
     def parse(self, page_to_parse: bs4.element.Tag, market: MarketPlace):
         """Method for overriding in each subclass."""
         pass
 
     def processing_market_place(self):
-        """Method for overriding in each subclass."""
-        pass
+        """Makes all necessary processes to find apartments at each marketplace."""
+        avito_scrape_client = ScrapeClient(self.tags, self.telegram_client)
+
+        for page_number in range(1, PAGES_TO_PARSE):
+            html_apartments = avito_scrape_client.scrape_page(page_number)
+
+            if html_apartments:
+                for html_apartment in html_apartments:
+                    apartment = self.parse(html_apartment, self.tags)
+
+                    if apartment is not None:
+                        if Apartment.objects.filter(url=apartment["url"]).exists():
+                            apartment_in_base = Apartment.objects.get(
+                                url=apartment["url"]
+                            )
+
+                            if (
+                                    apartment_in_base.price_per_meter
+                                    == apartment["price_per_meter"]
+                            ):
+                                continue
+                            else:
+                                price_difference = (
+                                        apartment["price_per_meter"]
+                                        - apartment_in_base.price_per_meter
+                                )
+                                apartment_in_base.price_per_meter = apartment[
+                                    "price_per_meter"
+                                ]
+                                apartment_in_base.save()
+                                if apartment["price_per_meter"] <= REDEMPTION_VALUE:
+                                    self.telegram_client.send_message_with_existing_object(
+                                        apartment, price_difference
+                                    )
+
+                        else:
+                            self.get_or_create_apartment_object(apartment)
+                            if apartment["price_per_meter"] <= REDEMPTION_VALUE:
+                                self.telegram_client.send_message_with_new_object(
+                                    apartment
+                                )
+                time.sleep(5)
+            else:
+                self.telegram_client.send_final_message_with(page_number)
+                break
 
     def get_or_create_apartment_object(self, apartment):
         """Create Apartment-class object."""
@@ -76,38 +114,10 @@ class Avito(MarketPlaceProcessing):
 
     def __init__(self, telegram_client):
         super().__init__(telegram_client)
-
-    def get_or_create_market_place(self):
-        """Get or create site Avito"""
-        avito, _ = MarketPlace.objects.get_or_create(
-            name="Avito",
-            url="https://www.avito.ru/tver/kvartiry/prodam/vtorichka-ASgBAQICAUSSA8YQAUDmBxSMUg?cd=1&p=",
-            main_block_tag="div",
-            main_block_class_name="iva-item-content-UnQQ4",
-            price_tag="span",
-            price_class=json.dumps(
-                {"class": "price-text-E1Y7h text-text-LurtD text-size-s-BxGpL"}
-            ),
-            title_tag="h3",
-            title_class=json.dumps(
-                {
-                    "class": "title-root-j7cja iva-item-title-_qCwt title-listRedesign-XHq38 title"
-                    "-root_maxHeight-SXHes text-text-LurtD text-size-s-BxGpL text-bold-SinUO"
-                }
-            ),
-            url_tag="a",
-            url_class=json.dumps(
-                {
-                    "class": "link-link-MbQDP link-design-default-_nSbv title-root-j7cja iva-item"
-                    "-title-_qCwt title-listRedesign-XHq38 title-root_maxHeight-SXHes"
-                }
-            ),
-            url_first_part="https://www.avito.ru",
-        )
-        return avito
+        self.tags = MarketPlace.objects.get(name="Avito")
 
     def parse(self, page_to_parse: bs4.element.Tag, market: MarketPlace):
-        """Parses collected data from scraping sites and searches required info and objects."""
+        """Parses collected data from Avito and searches required info and objects."""
 
         cleaned_html = page_to_parse.find(
             market.price_tag, json.loads(market.price_class)
@@ -140,54 +150,6 @@ class Avito(MarketPlaceProcessing):
                     "time": datetime.now(),
                 }
                 return apartment_info
-
-    def processing_market_place(self):
-        """Makes all necessary processes to find apartments at Avito marketplace."""
-        avito_tags = self.get_or_create_market_place()
-        avito_scrape_client = ScrapeClient(avito_tags, self.telegram_client)
-
-        for page_number in range(1, PAGES_TO_PARSE):
-            html_apartments = avito_scrape_client.scrape_page(page_number)
-
-            if html_apartments:
-                for html_apartment in html_apartments:
-                    apartment = self.parse(html_apartment, avito_tags)
-
-                    if apartment is not None:
-                        if Apartment.objects.filter(url=apartment["url"]).exists():
-                            apartment_in_base = Apartment.objects.get(
-                                url=apartment["url"]
-                            )
-
-                            if (
-                                apartment_in_base.price_per_meter
-                                == apartment["price_per_meter"]
-                            ):
-                                continue
-                            else:
-                                price_difference = (
-                                    apartment["price_per_meter"]
-                                    - apartment_in_base.price_per_meter
-                                )
-                                apartment_in_base.price_per_meter = apartment[
-                                    "price_per_meter"
-                                ]
-                                apartment_in_base.save()
-                                if apartment["price_per_meter"] <= REDEMPTION_VALUE:
-                                    self.telegram_client.send_message_with_existing_object(
-                                        apartment, price_difference
-                                    )
-
-                        else:
-                            self.get_or_create_apartment_object(apartment)
-                            if apartment["price_per_meter"] <= REDEMPTION_VALUE:
-                                self.telegram_client.send_message_with_new_object(
-                                    apartment
-                                )
-                time.sleep(5)
-            else:
-                self.telegram_client.send_final_message_with(page_number)
-                break
 
 
 class TelegramInterface:
@@ -237,11 +199,11 @@ class TelegramInterface:
 
 def main(request):
     """Main function, that starts our service."""
-    # Create the telegram client
+    # Create the telegram client.
     telegram_client = TelegramInterface()
     # Create Avito market place.
     avito = Avito(telegram_client)
-    # Processing Avito
+    # Processing Avito.
     avito.processing_market_place()
 
     return HttpResponse("Nicely done")
