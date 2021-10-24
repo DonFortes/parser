@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from django.http import HttpResponse
 from dotenv import load_dotenv
 
-from my_parser.settings import CHAT_ID, PAGES_TO_PARSE, REDEMPTION_VALUE, bot
+from my_parser.settings import CHAT_ID, PAGES_TO_PARSE, REDEMPTION_VALUE, OLD_MIN_VALUE, NEW_MAX_VALUE, bot
 from parsing.models import Apartment, MarketPlace, Phrase
 
 load_dotenv()
@@ -91,7 +91,7 @@ class MarketPlaceProcessing:
                                 self.telegram_client.send_message_with_new_object(
                                     apartment
                                 )
-                time.sleep(5)
+                time.sleep(6)
             else:
                 self.telegram_client.send_final_message_with(page_number)
                 break
@@ -152,11 +152,12 @@ class Avito(MarketPlaceProcessing):
                 return apartment_info
 
 
-class TelegramInterface:
+class Telegram:
     """Class that resolves sending different messages to telegram."""
 
     def __init__(self):
         self.phrases = self.get_phrases_queryset()
+        self.chat_id = CHAT_ID
 
     def get_phrases_queryset(self):
         """Get all phrases from database."""
@@ -165,7 +166,7 @@ class TelegramInterface:
 
     def send_prepared_message(self, message):
         """Sends message and wait for 3 seconds."""
-        bot.send_message(CHAT_ID, message)
+        bot.send_message(self.chat_id, message)
         time.sleep(3)
 
     def send_message_with_new_object(self, apartment):
@@ -197,13 +198,27 @@ class TelegramInterface:
         return self.send_prepared_message(message)
 
 
+def find_in_delta_price(telegram_client):
+    """Finds an object that already exists in the database with a delta price."""
+    delta_objects = (obj for obj in Apartment.objects.all() if OLD_MIN_VALUE < obj.price_per_meter < NEW_MAX_VALUE)
+    for obj in delta_objects:
+        price = obj.price_per_meter
+        url = obj.url
+        message = f'Дельта-объект с ценой {price}₽ за метр. Этот объект уже был. Смотри тут: {url}'
+        telegram_client.send_prepared_message(message)
+        delta_objects.__next__()
+
+
 def main(request):
     """Main function, that starts our service."""
     # Create the telegram client.
-    telegram_client = TelegramInterface()
+    telegram_client = Telegram()
     # Create Avito market place.
     avito = Avito(telegram_client)
     # Processing Avito.
     avito.processing_market_place()
+
+    # If you need to find object in price delta existing in database - uncomment this calling.
+    # find_in_delta_price(telegram_client)
 
     return HttpResponse("Nicely done")
