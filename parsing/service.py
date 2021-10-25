@@ -6,10 +6,12 @@ from datetime import datetime
 import bs4
 import requests
 from bs4 import BeautifulSoup
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 from dotenv import load_dotenv
 
-from my_parser.settings import CHAT_ID, PAGES_TO_PARSE, REDEMPTION_VALUE, OLD_MIN_VALUE, NEW_MAX_VALUE, bot
+from my_parser.settings import (CHAT_ID, NEW_MAX_VALUE, OLD_MIN_VALUE,
+                                PAGES_TO_PARSE, REDEMPTION_VALUE, bot)
 from parsing.models import Apartment, MarketPlace, Phrase
 
 load_dotenv()
@@ -52,7 +54,6 @@ class MarketPlaceProcessing:
     def processing_market_place(self):
         """Makes all necessary processes to find apartments at each marketplace."""
         avito_scrape_client = ScrapeClient(self.tags, self.telegram_client)
-
         for page_number in range(1, PAGES_TO_PARSE):
             html_apartments = avito_scrape_client.scrape_page(page_number)
 
@@ -61,20 +62,26 @@ class MarketPlaceProcessing:
                     apartment = self.parse(html_apartment, self.tags)
 
                     if apartment is not None:
-                        if Apartment.objects.filter(url=apartment["url"]).exists():
+                        try:
                             apartment_in_base = Apartment.objects.get(
                                 url=apartment["url"]
                             )
-
+                        except ObjectDoesNotExist:
+                            self.get_or_create_apartment_object(apartment)
+                            if apartment["price_per_meter"] <= REDEMPTION_VALUE:
+                                self.telegram_client.send_message_with_new_object(
+                                    apartment
+                                )
+                        else:
                             if (
-                                    apartment_in_base.price_per_meter
-                                    == apartment["price_per_meter"]
+                                apartment_in_base.price_per_meter
+                                == apartment["price_per_meter"]
                             ):
                                 continue
                             else:
                                 price_difference = (
-                                        apartment["price_per_meter"]
-                                        - apartment_in_base.price_per_meter
+                                    apartment["price_per_meter"]
+                                    - apartment_in_base.price_per_meter
                                 )
                                 apartment_in_base.price_per_meter = apartment[
                                     "price_per_meter"
@@ -84,13 +91,6 @@ class MarketPlaceProcessing:
                                     self.telegram_client.send_message_with_existing_object(
                                         apartment, price_difference
                                     )
-
-                        else:
-                            self.get_or_create_apartment_object(apartment)
-                            if apartment["price_per_meter"] <= REDEMPTION_VALUE:
-                                self.telegram_client.send_message_with_new_object(
-                                    apartment
-                                )
                 time.sleep(6)
             else:
                 self.telegram_client.send_final_message_with(page_number)
@@ -200,11 +200,15 @@ class Telegram:
 
 def find_in_delta_price(telegram_client):
     """Finds an object that already exists in the database with a delta price."""
-    delta_objects = (obj for obj in Apartment.objects.all() if OLD_MIN_VALUE < obj.price_per_meter < NEW_MAX_VALUE)
+    delta_objects = (
+        obj
+        for obj in Apartment.objects.all()
+        if OLD_MIN_VALUE < obj.price_per_meter < NEW_MAX_VALUE
+    )
     for obj in delta_objects:
         price = obj.price_per_meter
         url = obj.url
-        message = f'Дельта-объект с ценой {price}₽ за метр. Этот объект уже был. Смотри тут: {url}'
+        message = f"Дельта-объект с ценой {price}₽ за метр. Этот объект уже был. Смотри тут: {url}"
         telegram_client.send_prepared_message(message)
         delta_objects.__next__()
 
@@ -218,7 +222,7 @@ def main(request):
     # Processing Avito.
     avito.processing_market_place()
 
-    # If you need to find object in price delta existing in database - uncomment this calling.
+    # If you need to find object in price delta existing in database - uncomment this calling:
     # find_in_delta_price(telegram_client)
 
     return HttpResponse("Nicely done")
