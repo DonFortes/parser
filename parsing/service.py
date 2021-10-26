@@ -10,9 +10,23 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 from dotenv import load_dotenv
 
-from my_parser.settings import (CHAT_ID, NEW_MAX_VALUE, OLD_MIN_VALUE,
-                                PAGES_TO_PARSE, REDEMPTION_VALUE, bot)
-from parsing.models import Apartment, MarketPlace, Phrase
+from my_parser.settings import (
+    CHAT_ID,
+    NEW_MAX_VALUE,
+    OLD_MIN_VALUE,
+    PAGES_TO_PARSE,
+    REDEMPTION_VALUE,
+    bot,
+)
+from parsing.db_processing import (
+    get_all_apartments,
+    get_all_phrases,
+    get_apartment_from_base,
+    get_market_place_object,
+    get_or_create_apartment_object,
+    save_new_data_for,
+)
+from parsing.models import MarketPlace
 
 load_dotenv()
 
@@ -63,11 +77,9 @@ class MarketPlaceProcessing:
 
                     if apartment is not None:
                         try:
-                            apartment_in_base = Apartment.objects.get(
-                                url=apartment["url"]
-                            )
+                            apartment_in_base = get_apartment_from_base(apartment)
                         except ObjectDoesNotExist:
-                            self.get_or_create_apartment_object(apartment)
+                            get_or_create_apartment_object(apartment)
                             if apartment["price_per_meter"] <= REDEMPTION_VALUE:
                                 self.telegram_client.send_message_with_new_object(
                                     apartment
@@ -86,7 +98,7 @@ class MarketPlaceProcessing:
                                 apartment_in_base.price_per_meter = apartment[
                                     "price_per_meter"
                                 ]
-                                apartment_in_base.save()
+                                save_new_data_for(apartment_in_base)
                                 if apartment["price_per_meter"] <= REDEMPTION_VALUE:
                                     self.telegram_client.send_message_with_existing_object(
                                         apartment, price_difference
@@ -96,25 +108,13 @@ class MarketPlaceProcessing:
                 self.telegram_client.send_final_message_with(page_number)
                 break
 
-    def get_or_create_apartment_object(self, apartment):
-        """Create Apartment-class object."""
-        apartment_object = Apartment.objects.get_or_create(
-            name=apartment["name"],
-            url=apartment["url"],
-            price=apartment["price"],
-            total_area=apartment["total_area"],
-            price_per_meter=apartment["price_per_meter"],
-            time=datetime.now(),
-        )
-        return apartment_object
-
 
 class Avito(MarketPlaceProcessing):
     """Class that encapsulates all work with Avito site."""
 
     def __init__(self, telegram_client):
         super().__init__(telegram_client)
-        self.tags = MarketPlace.objects.get(name="Avito")
+        self.tags = get_market_place_object("Avito")
 
     def parse(self, page_to_parse: bs4.element.Tag, market: MarketPlace):
         """Parses collected data from Avito and searches required info and objects."""
@@ -156,13 +156,8 @@ class Telegram:
     """Class that resolves sending different messages to telegram."""
 
     def __init__(self):
-        self.phrases = self.get_phrases_queryset()
+        self.phrases = get_all_phrases()
         self.chat_id = CHAT_ID
-
-    def get_phrases_queryset(self):
-        """Get all phrases from database."""
-        phrases = Phrase.objects.all()
-        return phrases
 
     def send_prepared_message(self, message):
         """Sends message and wait for 3 seconds."""
@@ -202,7 +197,7 @@ def find_in_delta_price(telegram_client):
     """Finds an object that already exists in the database with a delta price."""
     delta_objects = (
         obj
-        for obj in Apartment.objects.all()
+        for obj in get_all_apartments()
         if OLD_MIN_VALUE < obj.price_per_meter < NEW_MAX_VALUE
     )
     for obj in delta_objects:
