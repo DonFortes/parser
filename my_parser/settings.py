@@ -27,9 +27,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get("ENV_SECRET_KEY")
 PAGES_TO_PARSE = 100
-REDEMPTION_VALUE = 47_000
-OLD_MIN_VALUE = 45_000
-NEW_MAX_VALUE = 47_000
+REDEMPTION_VALUE = 50_000
+OLD_MIN_VALUE = 47_000
+NEW_MAX_VALUE = 50_000
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 bot = Bot(token=BOT_TOKEN)
@@ -92,13 +92,13 @@ WSGI_APPLICATION = "my_parser.wsgi.application"
 # }
 
 DATABASES = {
-    'default': {
-        'ENGINE': os.environ.get('DB_ENGINE'),
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('POSTGRES_USER'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
-        'PORT': os.environ.get('DB_PORT'),
+    "default": {
+        "ENGINE": os.environ.get("DB_ENGINE"),
+        "NAME": os.environ.get("DB_NAME"),
+        "USER": os.environ.get("POSTGRES_USER"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
+        "HOST": os.environ.get("DB_HOST"),
+        "PORT": os.environ.get("DB_PORT"),
     }
 }
 
