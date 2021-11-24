@@ -31,46 +31,44 @@ class ScrapeClient:
         self.market_tags = marketplace_tags
         self.telegram_client = telegram_client
 
-    def scrape_page(self, page_number, market):
+    def scrape_page(self, page_number, market, session):
         """Takes objects from given url pages."""
         link = self.market_tags.url + str(page_number)
         loguru.logger.debug(f"Смотрю {page_number} страницу.")
 
         headers = market.make_dynamic_headers(link)
-
-        with requests.get(link, headers=headers) as response:
+        with session.get(link, headers=headers) as response:
             if response.status_code != 200:
                 self.telegram_client.send_message_with_error(response.status_code)
-
             html_soup = BeautifulSoup(response.text, "html.parser")
 
-            apartment_data = html_soup.find_all(
-                self.market_tags.main_block_tag, self.market_tags.main_block_class_name
-            )
-            return apartment_data
+        apartment_data = html_soup.find_all(
+            self.market_tags.main_block_tag, self.market_tags.main_block_class_name
+        )
+        return apartment_data
 
 
 class MarketPlaceProcessing:
     """Factory class to work with each market place."""
 
-    def __init__(self, telegram_client):
+    def __init__(self, telegram_client, session):
         self.telegram_client = telegram_client
+        self.session = session
         self.marketplace_tags = None
-        self.headers = None
 
     def parse(self, page_to_parse: bs4.element.Tag, market: MarketPlace):
         """Method for overriding in each subclass."""
         pass
 
-    def make_dynamic_headers(self, link):
+    def make_headers(self, link):
         """Method for overriding in each subclass."""
         pass
 
     def processing_market_place(self, market):
         """Makes all necessary processes to find apartments at each marketplace."""
         scrape_client = ScrapeClient(self.marketplace_tags, self.telegram_client)
-        for page_number in range(1, PAGES_TO_PARSE):
-            html_apartments = scrape_client.scrape_page(page_number, market)
+        for page_number in range(1, PAGES_TO_PARSE + 1):
+            html_apartments = scrape_client.scrape_page(page_number, market, self.session)
 
             if html_apartments:
                 for html_apartment in html_apartments:
@@ -113,16 +111,15 @@ class MarketPlaceProcessing:
 class Avito(MarketPlaceProcessing):
     """Class that encapsulates all work with Avito site."""
 
-    def __init__(self, telegram_client):
-        super().__init__(telegram_client)
+    def __init__(self, telegram_client, session):
+        super().__init__(telegram_client, session)
         self.marketplace_tags = get_market_place_object("Avito")
-        self.headers = AVITO_HEADERS
 
     def make_dynamic_headers(self, link):
         """Create a 'referer' header to avito."""
         upd = {'referer': link}
-        self.headers.update(upd)
-        return self.headers
+        self.session.headers.update(upd)
+        return self.session.headers
 
     def parse(self, page_to_parse: bs4.element.Tag, market: MarketPlace):
         """Parses collected data from Avito and searches required info and objects."""
@@ -218,10 +215,14 @@ def find_in_delta_price(telegram_client):
 
 def main(request):
     """Main function, that starts our service."""
+
+    # Creating session at the start, behind all functions to make stable TCP-connection to increase request speed.
+    session = requests.Session()
+    session.headers.update(AVITO_HEADERS)
     # Create the telegram client.
     telegram_client = Telegram()
     # Create Avito market place.
-    avito = Avito(telegram_client)
+    avito = Avito(telegram_client, session)
     # Processing Avito with Avito headers.
     avito.processing_market_place(avito)
 
