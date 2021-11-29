@@ -1,7 +1,7 @@
 import json
 import random
 import time
-from datetime import datetime
+import datetime
 
 import bs4
 import loguru
@@ -11,14 +11,23 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 from dotenv import load_dotenv
 
-from my_parser.settings import (AVITO_HEADERS, CHAT_ID, NEW_MAX_VALUE,
-                                OLD_MIN_VALUE, PAGES_TO_PARSE,
-                                REDEMPTION_VALUE, bot)
-from parsing.db_processing import (get_all_apartments, get_all_phrases,
-                                   get_apartment_from_base,
-                                   get_market_place_object,
-                                   get_or_create_apartment_object,
-                                   save_new_data_for)
+from my_parser.settings import (
+    AVITO_HEADERS,
+    CHAT_ID,
+    NEW_MAX_VALUE,
+    OLD_MIN_VALUE,
+    PAGES_TO_PARSE,
+    REDEMPTION_VALUE,
+    bot,
+)
+from parsing.db_processing import (
+    get_all_apartments,
+    get_all_phrases,
+    get_apartment_from_base,
+    get_market_place_object,
+    get_or_create_apartment_object,
+    save_new_data_for,
+)
 from parsing.models import MarketPlace
 
 load_dotenv()
@@ -68,7 +77,9 @@ class MarketPlaceProcessing:
         """Makes all necessary processes to find apartments at each marketplace."""
         scrape_client = ScrapeClient(self.marketplace_tags, self.telegram_client)
         for page_number in range(1, PAGES_TO_PARSE + 1):
-            html_apartments = scrape_client.scrape_page(page_number, market, self.session)
+            html_apartments = scrape_client.scrape_page(
+                page_number, market, self.session
+            )
 
             if html_apartments:
                 for html_apartment in html_apartments:
@@ -117,7 +128,7 @@ class Avito(MarketPlaceProcessing):
 
     def make_dynamic_headers(self, link):
         """Create a 'referer' header to avito."""
-        upd = {'referer': link}
+        upd = {"referer": link}
         self.session.headers.update(upd)
         return self.session.headers
 
@@ -146,13 +157,15 @@ class Avito(MarketPlaceProcessing):
                 url = page_to_parse.find(market.url_tag, json.loads(market.url_class))
                 url = market.url_first_part + url.get("href")
                 price_per_meter = int(price / total_area)
+                loguru.logger.debug(price_per_meter)
+                offset = datetime.timezone(datetime.timedelta(hours=3))
                 apartment_info = {
                     "name": title,
                     "url": url,
                     "price": price,
                     "total_area": total_area,
                     "price_per_meter": price_per_meter,
-                    "time": datetime.now(),
+                    "time": datetime.datetime.now(offset),
                 }
                 return apartment_info
 

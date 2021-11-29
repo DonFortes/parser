@@ -35,7 +35,7 @@ CHAT_ID = os.environ.get("CHAT_ID")
 AVITO_HEADERS = {
     "Connection": "keep-alive",
     "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-    'accept-encoding': 'gzip, deflate, br',
+    "accept-encoding": "gzip, deflate, br",
     "cache-control": "max-age=0",
     "Accept-Language": "ru,en;q=0.9",
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0",
