@@ -1,0 +1,37 @@
+version: '3.8'
+
+volumes:
+  postgres_data:
+
+services:
+
+  db:
+    image: postgres:14
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - ./.env
+
+  web:
+    build: .
+    depends_on:
+      - db
+    restart: always
+    entrypoint: /code/entrypoint.sh
+    volumes:
+      - .:/code/
+    env_file:
+      - ./.env
+
+  nginx:
+    image: nginx:1.19.0-alpine
+    ports:
+      - "127.0.0.1:80:80"
+    volumes:
+      - ./static:/code/static
+      - ./media:/code/media
+      - ./nginx:/etc/nginx/conf.d/
+    depends_on:
+      - web
+    restart: always
