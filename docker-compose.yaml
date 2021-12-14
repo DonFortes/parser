@@ -14,7 +14,8 @@ services:
       - ./.env
 
   web:
-    build: .
+#    build: .
+    image: azeron/my_parser:latest
     depends_on:
       - db
     restart: always

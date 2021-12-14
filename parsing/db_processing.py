@@ -28,6 +28,11 @@ def get_all_apartments():
     return all_apartments
 
 
+def delta_objects_count(old_min_value, new_max_value):
+    object_count = Apartment.objects.filter(price__range=(old_min_value, new_max_value)).count()
+    return object_count
+
+
 def get_market_place_object(name):
     """Get marketplace object by name."""
     market_place = MarketPlace.objects.get(name=name)

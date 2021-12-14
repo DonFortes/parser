@@ -21,6 +21,7 @@ from my_parser.settings import (
     bot,
 )
 from parsing.db_processing import (
+    delta_objects_count,
     get_all_apartments,
     get_all_phrases,
     get_apartment_from_base,
@@ -47,6 +48,9 @@ class ScrapeClient:
 
         headers = market.make_dynamic_headers(link)
         with session.get(link, headers=headers) as response:
+            loguru.logger.debug(response.status_code)
+            loguru.logger.debug(session.headers)
+            loguru.logger.debug(session.cookies)
             if response.status_code != 200:
                 self.telegram_client.send_message_with_error(response.status_code)
             html_soup = BeautifulSoup(response.text, "html.parser")
@@ -113,7 +117,7 @@ class MarketPlaceProcessing:
                                     self.telegram_client.send_message_with_existing_object(
                                         apartment, price_difference
                                     )
-                # time.sleep(6)
+                time.sleep(random.randint(37, 62))
             else:
                 self.telegram_client.send_final_message_with(page_number)
                 break
@@ -130,7 +134,9 @@ class Avito(MarketPlaceProcessing):
         """Create a 'referer' header to avito."""
         upd = {"referer": link}
         self.session.headers.update(upd)
+        # self.session.headers = {}
         return self.session.headers
+
 
     def parse(self, page_to_parse: bs4.element.Tag, market: MarketPlace):
         """Parses collected data from Avito and searches required info and objects."""
@@ -231,6 +237,7 @@ def main(request):
 
     # Creating session at the start, behind all functions to make stable TCP-connection to increase request speed.
     session = requests.Session()
+    # session.cookies.clear_session_cookies()
     session.headers.update(AVITO_HEADERS)
     # Create the telegram client.
     telegram_client = Telegram()
@@ -239,7 +246,10 @@ def main(request):
     # Processing Avito with Avito headers.
     avito.processing_market_place(avito)
 
+    # loguru.logger.debug(f'delta_objects_count: {delta_objects_count(OLD_MIN_VALUE, NEW_MAX_VALUE)}')
+    # loguru.logger.debug(f'get_all_apartments: {get_all_apartments().count()}')
+
     # If you need to find object in price delta existing in database - uncomment this calling:
     # find_in_delta_price(telegram_client)
 
-    return HttpResponse("Nicely done")
+    return main(request)
