@@ -45,6 +45,8 @@ class ScrapeClient:
                 loguru.logger.debug(response.status_code)
                 if response.status_code != 200:
                     self.telegram_client.send_message_with_error(response.status_code)
+                if response.status_code == 403:
+                    time.sleep(600)
                 html_soup = BeautifulSoup(response.text, "html.parser")
         except requests.exceptions.ConnectionError:
             start()
