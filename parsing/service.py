@@ -41,12 +41,12 @@ class ScrapeClient:
         headers = market.make_dynamic_headers(link)
         loguru.logger.debug(headers)
         try:
-            with requests.get(link, headers=headers) as response:
+            with requests.get(link) as response:
                 loguru.logger.debug(response.status_code)
                 if response.status_code != 200:
                     self.telegram_client.send_message_with_error(response.status_code)
-                if response.status_code == 403:
-                    time.sleep(600)
+                if response.status_code == 403 or response.status_code == 429:
+                    time.sleep(3_600)
                 html_soup = BeautifulSoup(response.text, "html.parser")
         except requests.exceptions.ConnectionError:
             start()
@@ -111,7 +111,7 @@ class MarketPlaceProcessing:
                                     self.telegram_client.send_message_with_existing_object(
                                         apartment, price_difference
                                     )
-                time.sleep(random.randint(37, 62))
+                time.sleep(random.randint(101, 206))
             else:
                 self.telegram_client.send_final_message_with(page_number)
                 break
@@ -250,8 +250,9 @@ def start():
 
 def main(request):
     """A function that runs our service on a schedule at 09:00 (UTC+3) every day."""
-    schedule.every().day.at("06:00").do(start)
-
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    start()
+    # schedule.every().day.at("06:00").do(start)
+    #
+    # while True:
+    #     schedule.run_pending()
+    #     time.sleep(1)
