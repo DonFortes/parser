@@ -14,11 +14,21 @@
             Привет.
         </h1>
         <p class="subtitle">
-            Парсер сейчас <strong>работает</strong>!
+            Парсер сейчас <strong>
+            {% if not status %}
+                НЕ
+            {% endif %}
+            работает
+        </strong>!
         </p>
 
         <a class="button" href="{% url "main" %}">
-            Start!
+            {% if not status %}
+                Start!
+            {% else %}
+                Stop!
+            {% endif %}
+
         </a>
 
         {#        <a class="button" href="{% url "admin_path" %}">#}

@@ -16,8 +16,8 @@ from dotenv import load_dotenv
 from my_parser.settings import (AVITO_HEADERS, CHAT_ID, NEW_MAX_VALUE,
                                 OLD_MIN_VALUE, PAGES_TO_PARSE,
                                 REDEMPTION_VALUE, bot)
-from parsing.db_processing import (get_all_apartments,
-                                   get_all_phrases, get_apartment_from_base,
+from parsing.db_processing import (get_all_apartments, get_all_phrases,
+                                   get_apartment_from_base,
                                    get_market_place_object,
                                    get_or_create_apartment_object,
                                    save_new_data_for)
@@ -41,20 +41,25 @@ class ScrapeClient:
         headers = market.make_dynamic_headers(link)
         loguru.logger.debug(headers)
         try:
-            with requests.get(link) as response:
+            with requests.get(link, headers=headers) as response:
                 loguru.logger.debug(response.status_code)
-                if response.status_code != 200:
-                    self.telegram_client.send_message_with_error(response.status_code)
-                if response.status_code == 403 or response.status_code == 429:
-                    time.sleep(3_600)
-                html_soup = BeautifulSoup(response.text, "html.parser")
-        except requests.exceptions.ConnectionError:
-            start()
 
-        apartment_data = html_soup.find_all(
-            self.market_tags.main_block_tag, self.market_tags.main_block_class_name
-        )
-        return apartment_data
+        except requests.exceptions.ConnectionError:
+            pass
+        else:
+            if response.status_code != 200:
+                self.telegram_client.send_message_with_error(response.status_code)
+            if response.status_code == 403 or response.status_code == 429:
+                time.sleep(3_600)
+            html_soup = BeautifulSoup(response.text, "html.parser")
+
+            apartment_data = html_soup.find_all(
+                self.market_tags.main_block_tag, self.market_tags.main_block_class_name
+            )
+            if apartment_data:
+                return apartment_data
+            else:
+                self.telegram_client.send_message_about_empty_apartment_data()
 
 
 class MarketPlaceProcessing:
@@ -67,17 +72,17 @@ class MarketPlaceProcessing:
 
     def parse(self, page_to_parse: bs4.element.Tag, market: MarketPlace):
         """Method for overriding in each subclass."""
-        pass
+        raise NotImplementedError
 
-    def make_headers(self, link):
+    def make_dynamic_headers(self, link):
         """Method for overriding in each subclass."""
-        pass
+        raise NotImplementedError
 
-    def processing_market_place(self, market):
+    def processing_market_place(self):
         """Makes all necessary processes to find apartments at each marketplace."""
         scrape_client = ScrapeClient(self.marketplace_tags, self.telegram_client)
         for page_number in range(1, PAGES_TO_PARSE + 1):
-            html_apartments = scrape_client.scrape_page(page_number, market)
+            html_apartments = scrape_client.scrape_page(page_number, self)
 
             if html_apartments:
                 for html_apartment in html_apartments:
@@ -204,6 +209,11 @@ class Telegram:
         message = f"Парсер получил response с кодом {error_code}. Проверьте в чем дело."
         return self.send_prepared_message(message)
 
+    def send_message_about_empty_apartment_data(self):
+        """Sends a message if parser found no data in response."""
+        message = f"Парсер не получил никаких данных с этой страницы."
+        return self.send_prepared_message(message)
+
     def send_final_message_with(self, page_number):
         """Sends a message after work."""
         message = f"Парсер обошел {page_number} страниц. Больше ничего не найдено."
@@ -225,34 +235,30 @@ def find_in_delta_price(telegram_client):
         delta_objects.__next__()
 
 
-def start():
-    """Function, that starts our service."""
-
-    now_time = dt.datetime.now().time()
-    start_stop_time = dt.time(22, 0, 0)
-    end_stop_time = dt.time(23, 59, 0)
-
-    if start_stop_time < now_time < end_stop_time:
-        return HttpResponse("Enough for today...")
-    else:
-        # Create the telegram client.
-        telegram_client = Telegram()
-        # Create Avito market place.
-        avito = Avito(telegram_client, AVITO_HEADERS)
-        # Processing Avito with Avito headers.
-        avito.processing_market_place(avito)
-
-        # If you need to find object in price delta existing in database - uncomment this calling:
-        # find_in_delta_price(telegram_client)
-
-        return start()
-
-
-def main(request):
-    """A function that runs our service on a schedule at 09:00 (UTC+3) every day."""
-    start()
-    # schedule.every().day.at("06:00").do(start)
-    #
-    # while True:
-    #     schedule.run_pending()
-    #     time.sleep(1)
+# def start(marketplace):
+#     """Function, that starts our service."""
+#
+#     now_time = dt.datetime.now().time()
+#     end_time = dt.time(22, 0, 0)
+#
+#     while now_time <= end_time:
+#         marketplace.processing_market_place()
+#         # If you need to find object in price delta existing in database - uncomment this calling:
+#         # find_in_delta_price(telegram_client)
+#     return HttpResponse("Enough")
+#
+#
+# def main(request):
+#     """A function that runs our service on a schedule at 09:00 (UTC+3) every day."""
+#     # return start()
+#
+#     # Create the telegram client.
+#     telegram_client = Telegram()
+#     # Create Avito market place.
+#     avito = Avito(telegram_client, AVITO_HEADERS)
+#
+#     schedule.every().day.at("06:00").do(start, marketplace=avito)
+#
+#     while True:
+#         schedule.run_pending()
+#         time.sleep(1)
