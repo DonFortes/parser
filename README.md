@@ -1,4 +1,7 @@
 # Avito Parser
+![pexels-photo-1546168](https://user-images.githubusercontent.com/53881876/151635131-47f56091-4839-4322-8aea-de08124f706e.jpeg)
+
+
 Helps to find the real-estate objects with interesting redemption value that you set, on Avito site (and may be others marketplaces in future). 
 Sends notifications to telegram, stores information about checked objects, checks every single real-estate object to changes in them. 
 Constant monitoring with necessary latency. Auto-start and auto-stop in certain time. Shows the status of work on parser's homepage. 
