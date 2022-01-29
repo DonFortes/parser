@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 import os
 from pathlib import Path
+import datetime as dt
 
 from dotenv import load_dotenv
 from telegram import Bot
@@ -30,6 +31,8 @@ PAGES_TO_PARSE = 100
 REDEMPTION_VALUE = 60_000
 OLD_MIN_VALUE = 57_000
 NEW_MAX_VALUE = 60_000
+NOW_TIME = dt.datetime.now().time()
+END_TIME = dt.time(22, 0, 0)
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 AVITO_HEADERS = {

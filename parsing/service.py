@@ -1,5 +1,4 @@
 import datetime as dt
-import http
 import json
 import random
 import time
@@ -7,10 +6,8 @@ import time
 import bs4
 import loguru
 import requests
-import schedule
 from bs4 import BeautifulSoup
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import HttpResponse
 from dotenv import load_dotenv
 
 from my_parser.settings import (AVITO_HEADERS, CHAT_ID, NEW_MAX_VALUE,

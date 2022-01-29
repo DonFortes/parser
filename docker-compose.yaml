@@ -1,10 +1,12 @@
-version: '3.8'
+version: '3.9'
 
 volumes:
   postgres_data:
+  static:
+  media:
+  nginx_conf:
 
 services:
-
   db:
     image: postgres:14
     restart: always
@@ -12,29 +14,30 @@ services:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
       - ./.env
-    ports:
-      - "5433:5432"
 
   web:
-    build: .
-#    image: azeron/my_parser:latest
+    image: azeron/my_parser:latest
     depends_on:
       - db
     restart: always
-    entrypoint: /code/entrypoint.sh
-    volumes:
-      - .:/code/
     env_file:
       - ./.env
+    volumes:
+      - static:/code/static
+      - media:/code/media
+      - nginx_conf:/code/nginx/
+    entrypoint: /code/entrypoint.sh
+#    environment:
+#      - DEBUG=0
 
   nginx:
     image: nginx:1.19.0-alpine
     ports:
-      - "127.0.0.1:80:80"
+      - "80:80"
     volumes:
-      - ./static:/code/static
-      - ./media:/code/media
-      - ./nginx:/etc/nginx/conf.d/
+      - static:/code/static
+      - media:/code/media
+      - nginx_conf:/etc/nginx/conf.d/
     depends_on:
       - web
     restart: always

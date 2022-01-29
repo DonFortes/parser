@@ -1,14 +1,11 @@
-import datetime as dt
 import time
 
-import loguru
 import schedule
-from django.http import HttpResponse
 from dotenv import load_dotenv
 
-from my_parser.settings import AVITO_HEADERS
+from my_parser.settings import AVITO_HEADERS, NOW_TIME, END_TIME
 from parsing.service import Telegram, Avito
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 
 load_dotenv()
 
@@ -16,10 +13,7 @@ load_dotenv()
 def start(marketplace):
     """Function, that starts our service."""
 
-    now_time = dt.datetime.now().time()
-    end_time = dt.time(22, 0, 0)
-
-    while now_time <= end_time:
+    while NOW_TIME <= END_TIME:
         marketplace.processing_market_place()
         # If you need to find object in price delta existing in database - uncomment this calling:
         # find_in_delta_price(telegram_client)
@@ -34,7 +28,11 @@ def scheduler():
     telegram_client = Telegram()
     # Create Avito market place.
     avito = Avito(telegram_client, AVITO_HEADERS)
-    schedule.every().day.at("08:00").do(start, marketplace=avito)
+
+    if NOW_TIME < END_TIME:
+        start(avito)
+    else:
+        schedule.every().day.at("10:00").do(start, marketplace=avito)
 
     while True:
         schedule.run_pending()
