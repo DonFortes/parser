@@ -10,14 +10,22 @@ from bs4 import BeautifulSoup
 from django.core.exceptions import ObjectDoesNotExist
 from dotenv import load_dotenv
 
-from my_parser.settings import (AVITO_HEADERS, CHAT_ID, NEW_MAX_VALUE,
-                                OLD_MIN_VALUE, PAGES_TO_PARSE,
-                                REDEMPTION_VALUE, bot)
-from parsing.db_processing import (get_all_apartments, get_all_phrases,
-                                   get_apartment_from_base,
-                                   get_market_place_object,
-                                   get_or_create_apartment_object,
-                                   save_new_data_for)
+from my_parser.settings import (
+    CHAT_ID,
+    NEW_MAX_VALUE,
+    OLD_MIN_VALUE,
+    PAGES_TO_PARSE,
+    REDEMPTION_VALUE,
+    bot,
+)
+from parsing.db_processing import (
+    get_all_apartments,
+    get_all_phrases,
+    get_apartment_from_base,
+    get_market_place_object,
+    get_or_create_apartment_object,
+    save_new_data_for,
+)
 from parsing.models import MarketPlace
 
 load_dotenv()
@@ -230,32 +238,3 @@ def find_in_delta_price(telegram_client):
         message = f"Дельта-объект с ценой {price}₽ за метр. Этот объект уже был. Смотри тут: {url}"
         telegram_client.send_prepared_message(message)
         delta_objects.__next__()
-
-
-# def start(marketplace):
-#     """Function, that starts our service."""
-#
-#     now_time = dt.datetime.now().time()
-#     end_time = dt.time(22, 0, 0)
-#
-#     while now_time <= end_time:
-#         marketplace.processing_market_place()
-#         # If you need to find object in price delta existing in database - uncomment this calling:
-#         # find_in_delta_price(telegram_client)
-#     return HttpResponse("Enough")
-#
-#
-# def main(request):
-#     """A function that runs our service on a schedule at 09:00 (UTC+3) every day."""
-#     # return start()
-#
-#     # Create the telegram client.
-#     telegram_client = Telegram()
-#     # Create Avito market place.
-#     avito = Avito(telegram_client, AVITO_HEADERS)
-#
-#     schedule.every().day.at("06:00").do(start, marketplace=avito)
-#
-#     while True:
-#         schedule.run_pending()
-#         time.sleep(1)
