@@ -1,6 +1,8 @@
 import datetime as dt
+from distutils.log import debug
+import random
 import time
-
+from loguru import logger
 from django.core.management.base import BaseCommand
 from dotenv import load_dotenv
 
@@ -12,15 +14,14 @@ load_dotenv()
 
 def its_time_to_run():
     now_time = dt.datetime.now().time()
-    stop_time_1 = dt.time(22, 0, 0)
-    stop_time_2 = dt.time(23, 59, 59)
-    stop_time_3 = dt.time(0, 0, 0)
-    stop_time_4 = dt.time(10, 0, 0)
+    random_minute = random.randint(0, 59)
+    start_time = dt.time(10, random_minute, 0)
+    stop_time = dt.time(21, random_minute, 0)
 
-    if stop_time_1 <= now_time <= stop_time_2 or stop_time_3 <= now_time < stop_time_4:
-        action = False
-    else:
+    if start_time <= now_time <= stop_time:
         action = True
+    else:
+        action = False
     return action
 
 
@@ -33,12 +34,13 @@ def start():
     avito = Avito(telegram_client, AVITO_HEADERS)
     while True:
         if its_time_to_run():
+            logger.debug('Работаем!')
             avito.processing_market_place()
         else:
+            logger.debug('Ждем начала рабочего дня')
             time.sleep(60)
         # If you need to find object in price delta existing in database - uncomment this calling:
         # find_in_delta_price(telegram_client)
-        return None
 
 
 class Command(BaseCommand):
