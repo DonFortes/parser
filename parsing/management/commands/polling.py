@@ -19,10 +19,8 @@ def its_time_to_run():
     stop_time = dt.time(21, random_minute, 0)
 
     if start_time <= now_time <= stop_time:
-        action = True
-    else:
-        action = False
-    return action
+        return True
+    return False
 
 
 def start():
