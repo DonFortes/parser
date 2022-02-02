@@ -6,6 +6,7 @@ import time
 import bs4
 import loguru
 import requests
+import urllib3
 from bs4 import BeautifulSoup
 from django.core.exceptions import ObjectDoesNotExist
 from dotenv import load_dotenv
@@ -42,22 +43,22 @@ class ScrapeClient:
         """Takes objects from given url pages."""
         link = self.market_tags.url + str(page_number)
         loguru.logger.debug(f"Смотрю {page_number} страницу.")
-
         headers = market.make_dynamic_headers(link)
         loguru.logger.debug(headers)
         try:
             with requests.get(link, headers=headers) as response:
                 loguru.logger.debug(response.status_code)
-
         except requests.exceptions.ConnectionError:
+            pass
+        except requests.exceptions.ChunkedEncodingError:
             pass
         else:
             if response.status_code != 200:
-                self.telegram_client.send_message_with_error(response.status_code)
+                self.telegram_client.send_message_with_error(
+                    response.status_code)
             if response.status_code == 403 or response.status_code == 429:
                 time.sleep(3_600)
             html_soup = BeautifulSoup(response.text, "html.parser")
-
             apartment_data = html_soup.find_all(
                 self.market_tags.main_block_tag, self.market_tags.main_block_class_name
             )
@@ -85,17 +86,20 @@ class MarketPlaceProcessing:
 
     def processing_market_place(self):
         """Makes all necessary processes to find apartments at each marketplace."""
-        scrape_client = ScrapeClient(self.marketplace_tags, self.telegram_client)
+        scrape_client = ScrapeClient(
+            self.marketplace_tags, self.telegram_client)
         for page_number in range(1, PAGES_TO_PARSE + 1):
             html_apartments = scrape_client.scrape_page(page_number, self)
 
             if html_apartments:
                 for html_apartment in html_apartments:
-                    apartment = self.parse(html_apartment, self.marketplace_tags)
+                    apartment = self.parse(
+                        html_apartment, self.marketplace_tags)
 
                     if apartment is not None:
                         try:
-                            apartment_in_base = get_apartment_from_base(apartment)
+                            apartment_in_base = get_apartment_from_base(
+                                apartment)
                         except ObjectDoesNotExist:
                             get_or_create_apartment_object(apartment)
                             if apartment["price_per_meter"] <= REDEMPTION_VALUE:
@@ -163,7 +167,8 @@ class Avito(MarketPlaceProcessing):
                     index_of_area = 2
 
                 total_area = float(title[index_of_area].replace(",", "."))
-                url = page_to_parse.find(market.url_tag, json.loads(market.url_class))
+                url = page_to_parse.find(
+                    market.url_tag, json.loads(market.url_class))
                 url = market.url_first_part + url.get("href")
                 price_per_meter = int(price / total_area)
                 loguru.logger.debug(price_per_meter)
