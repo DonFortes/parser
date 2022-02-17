@@ -10,22 +10,13 @@ from bs4 import BeautifulSoup
 from django.core.exceptions import ObjectDoesNotExist
 from dotenv import load_dotenv
 
-from my_parser.settings import (
-    CHAT_ID,
-    NEW_MAX_VALUE,
-    OLD_MIN_VALUE,
-    PAGES_TO_PARSE,
-    REDEMPTION_VALUE,
-    bot,
-)
-from parsing.db_processing import (
-    get_all_apartments,
-    get_all_phrases,
-    get_apartment_from_base,
-    get_market_place_object,
-    get_or_create_apartment_object,
-    save_new_data_for,
-)
+from my_parser.settings import (CHAT_ID, NEW_MAX_VALUE, OLD_MIN_VALUE,
+                                PAGES_TO_PARSE, REDEMPTION_VALUE, bot)
+from parsing.db_processing import (get_all_apartments, get_all_phrases,
+                                   get_apartment_from_base,
+                                   get_market_place_object,
+                                   get_or_create_apartment_object,
+                                   save_new_data_for)
 from parsing.models import MarketPlace
 
 load_dotenv()

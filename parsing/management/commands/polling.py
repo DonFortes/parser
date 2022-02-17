@@ -1,13 +1,13 @@
 import datetime as dt
-from distutils.log import debug
 import random
 import time
-from loguru import logger
+
 from django.core.management.base import BaseCommand
 from dotenv import load_dotenv
+from loguru import logger
 
 from my_parser.settings import AVITO_HEADERS, START_HOUR, STOP_HOUR
-from parsing.service import Avito, Telegram
+from parsing.service import Avito, Telegram, find_in_delta_price
 
 load_dotenv()
 
@@ -30,6 +30,12 @@ def start():
     telegram_client = Telegram()
     # Create Avito market place.
     avito = Avito(telegram_client, AVITO_HEADERS)
+
+    # If you need to find objects in delta price existing in database - uncomment calling
+    # below and comment avito.processing_market_place() below in while loop:
+    #
+    # find_in_delta_price(telegram_client)
+
     while True:
         if its_time_to_run():
             logger.debug("Работаем!")
@@ -37,8 +43,6 @@ def start():
         else:
             logger.debug("Ждем начала рабочего дня")
             time.sleep(60)
-        # If you need to find object in price delta existing in database - uncomment this calling:
-        # find_in_delta_price(telegram_client)
 
 
 class Command(BaseCommand):

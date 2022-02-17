@@ -27,9 +27,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get("ENV_SECRET_KEY")
 PAGES_TO_PARSE = 100
-REDEMPTION_VALUE = 60_000
-OLD_MIN_VALUE = 57_000
-NEW_MAX_VALUE = 60_000
+REDEMPTION_VALUE = 63_000
+OLD_MIN_VALUE = 60_000
+NEW_MAX_VALUE = 63_000
 START_HOUR = 10
 STOP_HOUR = 20
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
