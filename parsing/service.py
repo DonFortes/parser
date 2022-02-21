@@ -128,7 +128,7 @@ class Avito(MarketPlaceProcessing):
 
     def make_dynamic_headers(self, link):
         """Create a 'referer' header to avito."""
-        upd = {"referer": link}
+        upd = {"referer": "https://www.google.ru/"}
         self.headers.update(upd)
         # self.session.headers = {}
         return self.headers

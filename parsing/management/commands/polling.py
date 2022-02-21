@@ -16,7 +16,8 @@ def its_time_to_run():
     now_time = dt.datetime.now().time()
     random_minute = random.randint(0, 59)
     start_time = dt.time(START_HOUR, random_minute, 0)
-    stop_time = dt.time(STOP_HOUR, 0, 0)
+    # stop_time = dt.time(STOP_HOUR, 0, 0)
+    stop_time = dt.time(23, 59, 0)
 
     if start_time <= now_time <= stop_time:
         return True
