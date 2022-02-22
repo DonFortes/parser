@@ -18,8 +18,18 @@ from parsing.db_processing import (get_all_apartments, get_all_phrases,
                                    get_or_create_apartment_object,
                                    save_new_data_for)
 from parsing.models import MarketPlace
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.poolmanager import PoolManager
+import ssl
 
-load_dotenv()
+
+#  Subclass of HTTPAdapter
+class MyAdapter(HTTPAdapter):
+    def init_poolmanager(self, connections, maxsize, block=False):
+        self.poolmanager = PoolManager(num_pools=connections,
+                                       maxsize=maxsize,
+                                       block=block,
+                                       ssl_version=ssl.PROTOCOL_TLSv1_2)
 
 
 class ScrapeClient:
@@ -35,8 +45,11 @@ class ScrapeClient:
         loguru.logger.debug(f"Смотрю {page_number} страницу.")
         headers = market.make_dynamic_headers(link)
         loguru.logger.debug(headers)
+        session = requests.Session()
+        session.headers.update(headers)
+        session.mount('https://', MyAdapter())
         try:
-            with requests.get(link, headers=headers) as response:
+            with session.get(link, headers=headers) as response:
                 loguru.logger.debug(response.status_code)
         except requests.exceptions.ConnectionError:
             pass
@@ -44,7 +57,7 @@ class ScrapeClient:
             pass
         else:
             if response.status_code != 200:
-                self.telegram_client.send_message_with_error(response.status_code)
+                self.telegram_client.send_message_with_bad_response(response.status_code)
             if response.status_code == 403 or response.status_code == 429:
                 time.sleep(3_600)
             html_soup = BeautifulSoup(response.text, "html.parser")
@@ -154,21 +167,25 @@ class Avito(MarketPlaceProcessing):
                 else:
                     index_of_area = 2
 
-                total_area = float(title[index_of_area].replace(",", "."))
-                url = page_to_parse.find(market.url_tag, json.loads(market.url_class))
-                url = market.url_first_part + url.get("href")
-                price_per_meter = int(price / total_area)
-                loguru.logger.debug(price_per_meter)
-                offset = dt.timezone(dt.timedelta(hours=3))
-                apartment_info = {
-                    "name": title,
-                    "url": url,
-                    "price": price,
-                    "total_area": total_area,
-                    "price_per_meter": price_per_meter,
-                    "time": dt.datetime.now(offset),
-                }
-                return apartment_info
+                try:
+                    total_area = float(title[index_of_area].replace(",", "."))
+                except ValueError as error:
+                    self.telegram_client.send_message_with_error(error)
+                else:
+                    url = page_to_parse.find(market.url_tag, json.loads(market.url_class))
+                    url = market.url_first_part + url.get("href")
+                    price_per_meter = int(price / total_area)
+                    loguru.logger.debug(price_per_meter)
+                    offset = dt.timezone(dt.timedelta(hours=3))
+                    apartment_info = {
+                        "name": title,
+                        "url": url,
+                        "price": price,
+                        "total_area": total_area,
+                        "price_per_meter": price_per_meter,
+                        "time": dt.datetime.now(offset),
+                    }
+                    return apartment_info
 
 
 class Telegram:
@@ -201,9 +218,14 @@ class Telegram:
         )
         return self.send_prepared_message(message)
 
-    def send_message_with_error(self, error_code):
+    def send_message_with_bad_response(self, error_code):
         """Sends a message with error."""
         message = f"Парсер получил response с кодом {error_code}. Проверьте в чем дело."
+        return self.send_prepared_message(message)
+
+    def send_message_with_error(self, error):
+        message = f"Парсер получил ошибку {error}, со следующим содержанием: " \
+                  f"{error.with_traceback()}"
         return self.send_prepared_message(message)
 
     def send_message_about_empty_apartment_data(self, page_number):

@@ -31,12 +31,15 @@ REDEMPTION_VALUE = 63_000
 OLD_MIN_VALUE = 60_000
 NEW_MAX_VALUE = 63_000
 START_HOUR = 10
-STOP_HOUR = 21
+STOP_HOUR = 20
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 AVITO_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.174 YaBrowser/22.1.5.614 (beta) Yowser/2.5 Safari/537.36",
-    "Host": "www.avito.ru"
+    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+    "accept-encoding": "gzip, deflate, br",
+    "Accept-Language": "ru,en;q=0.9",
+    "cache-control": "max-age=0",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 YaBrowser/22.1.0.1513 (beta) Yowser/2.5 Safari/537.36",
 }
 
 bot = Bot(token=BOT_TOKEN)
