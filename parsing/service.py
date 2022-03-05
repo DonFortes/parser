@@ -224,8 +224,7 @@ class Telegram:
         return self.send_prepared_message(message)
 
     def send_message_with_error(self, error):
-        message = f"Парсер получил ошибку {error}, со следующим содержанием: " \
-                  f"{error.with_traceback()}"
+        message = f"Парсер получил ошибку {error}"
         return self.send_prepared_message(message)
 
     def send_message_about_empty_apartment_data(self, page_number):

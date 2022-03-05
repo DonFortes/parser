@@ -22,13 +22,10 @@
         </strong>!
         </p>
 
-        <a class="button" href="{% url "main" %}">
-            {% if not status %}
-                Start!
-            {% else %}
-                Stop!
-            {% endif %}
-
+        {% if not status %}
+            <a class="button" href="{% url "main" %}">
+            Start!
+        {% endif %}
         </a>
 
         {#        <a class="button" href="{% url "admin_path" %}">#}

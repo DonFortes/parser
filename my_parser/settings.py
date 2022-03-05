@@ -30,8 +30,8 @@ PAGES_TO_PARSE = 100
 REDEMPTION_VALUE = 63_000
 OLD_MIN_VALUE = 60_000
 NEW_MAX_VALUE = 63_000
-START_HOUR = 10
-STOP_HOUR = 20
+START_HOUR = 7  # UTC
+STOP_HOUR = 17  # UTC
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 AVITO_HEADERS = {
@@ -45,7 +45,7 @@ AVITO_HEADERS = {
 bot = Bot(token=BOT_TOKEN)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["*"]
 
