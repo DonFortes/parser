@@ -1,35 +1,45 @@
 import datetime as dt
 import json
 import random
+import ssl
 import time
 
 import bs4
-import loguru
 import requests
 from bs4 import BeautifulSoup
 from django.core.exceptions import ObjectDoesNotExist
-from dotenv import load_dotenv
-
-from my_parser.settings import (CHAT_ID, NEW_MAX_VALUE, OLD_MIN_VALUE,
-                                PAGES_TO_PARSE, REDEMPTION_VALUE, bot)
-from parsing.db_processing import (get_all_apartments, get_all_phrases,
-                                   get_apartment_from_base,
-                                   get_market_place_object,
-                                   get_or_create_apartment_object,
-                                   save_new_data_for)
-from parsing.models import MarketPlace
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
-import ssl
+
+from my_parser.settings import (
+    CHAT_ID,
+    NEW_MAX_VALUE,
+    OLD_MIN_VALUE,
+    PAGES_TO_PARSE,
+    REDEMPTION_VALUE,
+    bot,
+    logger_new,
+)
+from parsing.db_processing import (
+    get_all_apartments,
+    get_all_phrases,
+    get_apartment_from_base,
+    get_market_place_object,
+    get_or_create_apartment_object,
+    save_new_data_for,
+)
+from parsing.models import MarketPlace
 
 
 #  Subclass of HTTPAdapter
 class MyAdapter(HTTPAdapter):
     def init_poolmanager(self, connections, maxsize, block=False):
-        self.poolmanager = PoolManager(num_pools=connections,
-                                       maxsize=maxsize,
-                                       block=block,
-                                       ssl_version=ssl.PROTOCOL_TLSv1_2)
+        self.poolmanager = PoolManager(
+            num_pools=connections,
+            maxsize=maxsize,
+            block=block,
+            ssl_version=ssl.PROTOCOL_TLSv1_2,
+        )
 
 
 class ScrapeClient:
@@ -39,25 +49,28 @@ class ScrapeClient:
         self.market_tags = marketplace_tags
         self.telegram_client = telegram_client
 
+    @logger_new.catch
     def scrape_page(self, page_number, market):
         """Takes objects from given url pages."""
         link = self.market_tags.url + str(page_number)
-        loguru.logger.debug(f"Смотрю {page_number} страницу.")
+        logger_new.debug(f"Смотрю {page_number} страницу.")
         headers = market.make_dynamic_headers(link)
-        loguru.logger.debug(headers)
+        logger_new.debug(headers)
         session = requests.Session()
         session.headers.update(headers)
-        session.mount('https://', MyAdapter())
+        session.mount("https://", MyAdapter())
         try:
             with session.get(link, headers=headers) as response:
-                loguru.logger.debug(response.status_code)
+                logger_new.debug(f"response.status_code: {response.status_code}")
         except requests.exceptions.ConnectionError:
             pass
         except requests.exceptions.ChunkedEncodingError:
             pass
         else:
             if response.status_code != 200:
-                self.telegram_client.send_message_with_bad_response(response.status_code)
+                self.telegram_client.send_message_with_bad_response(
+                    response.status_code
+                )
             if response.status_code == 403 or response.status_code == 429:
                 time.sleep(3_600)
             html_soup = BeautifulSoup(response.text, "html.parser")
@@ -141,11 +154,13 @@ class Avito(MarketPlaceProcessing):
 
     def make_dynamic_headers(self, link):
         """Create a 'referer' header to avito."""
-        upd = {"referer": "https://www.google.ru/"}
+
+        upd = {"referer": link}
         self.headers.update(upd)
         # self.session.headers = {}
         return self.headers
 
+    @logger_new.catch
     def parse(self, page_to_parse: bs4.element.Tag, market: MarketPlace):
         """Parses collected data from Avito and searches required info and objects."""
 
@@ -172,10 +187,12 @@ class Avito(MarketPlaceProcessing):
                 except ValueError as error:
                     self.telegram_client.send_message_with_error(error)
                 else:
-                    url = page_to_parse.find(market.url_tag, json.loads(market.url_class))
+                    url = page_to_parse.find(
+                        market.url_tag, json.loads(market.url_class)
+                    )
                     url = market.url_first_part + url.get("href")
                     price_per_meter = int(price / total_area)
-                    loguru.logger.debug(price_per_meter)
+                    logger_new.debug(price_per_meter)
                     offset = dt.timezone(dt.timedelta(hours=3))
                     apartment_info = {
                         "name": title,

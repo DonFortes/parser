@@ -14,7 +14,12 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from loguru import logger
 from telegram import Bot
+
+logger.add("file_X.log", retention="10 days")
+
+logger_new = logger
 
 load_dotenv()
 

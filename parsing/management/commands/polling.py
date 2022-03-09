@@ -4,9 +4,8 @@ import time
 
 from django.core.management.base import BaseCommand
 from dotenv import load_dotenv
-from loguru import logger
 
-from my_parser.settings import AVITO_HEADERS, START_HOUR, STOP_HOUR
+from my_parser.settings import AVITO_HEADERS, START_HOUR, STOP_HOUR, logger_new
 from parsing.service import Avito, Telegram, find_in_delta_price
 
 load_dotenv()
@@ -17,7 +16,8 @@ def its_time_to_run():
     random_minute = random.randint(0, 59)
     start_time = dt.time(START_HOUR, random_minute, 0)
     stop_time = dt.time(STOP_HOUR, 0, 0)
-
+    logger_new.debug(f"now_time: {now_time}")
+    logger_new.debug(f"random_minute: {random_minute}")
     force_start = False
 
     if start_time <= now_time <= stop_time or force_start:
@@ -40,10 +40,10 @@ def start():
 
     while True:
         if its_time_to_run():
-            logger.debug("Работаем!")
+            logger_new.debug("Работаем!")
             avito.processing_market_place()
         else:
-            logger.debug("Ждем начала рабочего дня")
+            logger_new.debug("Ждем начала рабочего дня")
             time.sleep(60)
 
 

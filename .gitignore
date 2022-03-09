@@ -134,3 +134,4 @@ dmypy.json
 .pyre/
 avito_block
 data.json
+!/file_X.log
