@@ -73,6 +73,8 @@ class ScrapeClient:
                 )
             if response.status_code == 403 or response.status_code == 429:
                 time.sleep(3_600)
+            if response.status_code == 500:
+                time.sleep(60)
             html_soup = BeautifulSoup(response.text, "html.parser")
             apartment_data = html_soup.find_all(
                 self.market_tags.main_block_tag, self.market_tags.main_block_class_name
@@ -213,6 +215,8 @@ class Avito(MarketPlaceProcessing):
         """Get an object total area."""
         if title[0] == "Квартира-студия," or title[0] == "Апартаменты-студия,":
             index_of_area = 1
+        elif title[0] == "Аукцион:":
+            index_of_area = 3
         elif title[0] == "Доля":
             index_of_area = 4
         else:
