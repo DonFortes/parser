@@ -93,7 +93,7 @@ class MarketPlaceProcessing:
         self.marketplace_tags = None
         self.headers = headers
 
-    def parse(self, page_to_parse: bs4.element.Tag, market: MarketPlace):
+    def parse(self, page_to_parse: bs4.element.Tag):
         """Method for overriding in each subclass."""
         raise NotImplementedError
 
@@ -110,7 +110,7 @@ class MarketPlaceProcessing:
 
             if html_apartments:
                 for html_apartment in html_apartments:
-                    apartment = self.parse(html_apartment, self.marketplace_tags)
+                    apartment = self.parse(html_apartment)
 
                     if apartment is not None:
                         try:
@@ -161,51 +161,93 @@ class Avito(MarketPlaceProcessing):
         # self.session.headers = {}
         return self.headers
 
-    @logger_new.catch
-    def parse(self, page_to_parse: bs4.element.Tag, market: MarketPlace):
-        """Parses collected data from Avito and searches required info and objects."""
-
-        cleaned_html = page_to_parse.find(
-            market.price_tag, json.loads(market.price_class)
+    def get_price_per_meter(self, page_to_parse: bs4.element.Tag):
+        """Get an object price per meter."""
+        price_per_meter_html = page_to_parse.find(
+            self.marketplace_tags.price_tag,
+            json.loads(self.marketplace_tags.price_per_meter),
         )
-        if cleaned_html is not None:
+        logger_new.debug(price_per_meter_html)
+        if price_per_meter_html:
+            text_only = price_per_meter_html.text[0:-7]
+            price_per_meter = int("".join(text_only.split()))
+            logger_new.debug(int(price_per_meter))
+            return price_per_meter
+
+    def get_price(self, page_to_parse: bs4.element.Tag):
+        """Get an object price."""
+        cleaned_html = page_to_parse.find(
+            self.marketplace_tags.price_tag,
+            json.loads(self.marketplace_tags.price_class),
+        )
+        if cleaned_html:
             text_only = cleaned_html.text
-            text_only_no_currency_with_spaces = text_only.replace("₽", "")
-            price = int("".join(text_only_no_currency_with_spaces.split()))
-            title_obj = page_to_parse.find(
-                market.title_tag, json.loads(market.title_class)
+            text_only_no_currency_with_spaces = text_only.replace("₽", "").replace(
+                "от", ""
             )
-            if title_obj is not None:
-                title = title_obj.text.split()
-                logger_new.debug(title_obj)
-                logger_new.debug(title)
+            price = int("".join(text_only_no_currency_with_spaces.split()))
+            logger_new.debug(price)
+            return price
 
-                if title[0] == "Квартира-студия," or title[0] == "Апартаменты-студия,":
-                    index_of_area = 1
-                else:
-                    index_of_area = 2
+    def get_title(self, page_to_parse: bs4.element.Tag):
+        """Get an object title."""
+        title_obj = page_to_parse.find(
+            self.marketplace_tags.title_tag,
+            json.loads(self.marketplace_tags.title_class),
+        )
+        if title_obj:
+            title = title_obj.text.split()
+            logger_new.debug(title)
+            return title
 
-                try:
-                    total_area = float(title[index_of_area].replace(",", "."))
-                except ValueError as error:
-                    self.telegram_client.send_message_with_error(error)
-                    self.telegram_client.send_title_with_error(title)
-                else:
-                    url = page_to_parse.find(
-                        market.url_tag, json.loads(market.url_class)
-                    )
-                    url = market.url_first_part + url.get("href")
-                    price_per_meter = int(price / total_area)
-                    offset = dt.timezone(dt.timedelta(hours=3))
-                    apartment_info = {
-                        "name": title,
-                        "url": url,
-                        "price": price,
-                        "total_area": total_area,
-                        "price_per_meter": price_per_meter,
-                        "time": dt.datetime.now(offset),
-                    }
-                    return apartment_info
+    def get_url(self, page_to_parse: bs4.element.Tag):
+        """Get an object url."""
+        url_obj = page_to_parse.find(
+            self.marketplace_tags.url_tag, json.loads(self.marketplace_tags.url_class)
+        )
+        if url_obj:
+            url = self.marketplace_tags.url_first_part + url_obj.get("href")
+            return url
+
+    def get_total_area(self, title):
+        """Get an object total area."""
+        if title[0] == "Квартира-студия," or title[0] == "Апартаменты-студия,":
+            index_of_area = 1
+        elif title[0] == "Доля":
+            index_of_area = 4
+        else:
+            index_of_area = 2
+        try:
+            total_area = float(title[index_of_area].replace(",", "."))
+        except ValueError as error:
+            self.telegram_client.send_message_with_error(error)
+            self.telegram_client.send_title_with_error(title)
+        else:
+            return total_area
+
+    @logger_new.catch
+    def parse(self, page_to_parse: bs4.element.Tag) -> dict:
+        """Parses collected data from Avito and searches required info and objects."""
+        title = self.get_title(page_to_parse)
+        if title:
+            total_area = self.get_total_area(title)
+        else:
+            total_area = None
+        price = self.get_price(page_to_parse)
+        price_per_meter = self.get_price_per_meter(page_to_parse)
+        url = self.get_url(page_to_parse)
+
+        if title and price and price_per_meter and url and total_area:
+            offset = dt.timezone(dt.timedelta(hours=3))
+            apartment_info = {
+                "name": title,
+                "url": url,
+                "price": price,
+                "total_area": total_area,
+                "price_per_meter": price_per_meter,
+                "time": dt.datetime.now(offset),
+            }
+            return apartment_info
 
 
 class Telegram:

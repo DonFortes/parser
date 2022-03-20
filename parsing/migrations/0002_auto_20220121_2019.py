@@ -49,6 +49,11 @@ def get_or_create_market_place(apps, schema_editor):
         price_class=json.dumps(
             {"class": "price-text-_YGDY text-text-LurtD text-size-s-BxGpL"}
         ),
+        price_per_meter=json.dumps(
+            {
+                "class": "price-noaccent-X6dOy price-normalizedPrice-PplY9 text-text-LurtD text-size-s-BxGpL"
+            }
+        ),
         title_tag="h3",
         title_class=json.dumps(
             {

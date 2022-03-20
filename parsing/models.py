@@ -10,6 +10,9 @@ class MarketPlace(models.Model):
     )
     price_tag = models.CharField(max_length=255, verbose_name="Тэг блока цены")
     price_class = models.CharField(max_length=255, verbose_name="Класс блока цены")
+    price_per_meter = models.CharField(
+        max_length=255, verbose_name="Класс блока цены за метр"
+    )
     title_tag = models.CharField(max_length=255, verbose_name="Класс блока заголовка")
     title_class = models.CharField(max_length=255, verbose_name="Класс блока заголовка")
     url_tag = models.CharField(max_length=255, verbose_name="Класс блока ссылки")
