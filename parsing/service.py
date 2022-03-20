@@ -101,6 +101,7 @@ class MarketPlaceProcessing:
         """Method for overriding in each subclass."""
         raise NotImplementedError
 
+    @logger_new.catch
     def processing_market_place(self):
         """Makes all necessary processes to find apartments at each marketplace."""
         scrape_client = ScrapeClient(self.marketplace_tags, self.telegram_client)
@@ -176,6 +177,8 @@ class Avito(MarketPlaceProcessing):
             )
             if title_obj is not None:
                 title = title_obj.text.split()
+                logger_new.debug(title_obj)
+                logger_new.debug(title)
 
                 if title[0] == "Квартира-студия," or title[0] == "Апартаменты-студия,":
                     index_of_area = 1
@@ -186,13 +189,13 @@ class Avito(MarketPlaceProcessing):
                     total_area = float(title[index_of_area].replace(",", "."))
                 except ValueError as error:
                     self.telegram_client.send_message_with_error(error)
+                    self.telegram_client.send_title_with_error(title)
                 else:
                     url = page_to_parse.find(
                         market.url_tag, json.loads(market.url_class)
                     )
                     url = market.url_first_part + url.get("href")
                     price_per_meter = int(price / total_area)
-                    logger_new.debug(price_per_meter)
                     offset = dt.timezone(dt.timedelta(hours=3))
                     apartment_info = {
                         "name": title,
@@ -242,6 +245,10 @@ class Telegram:
 
     def send_message_with_error(self, error):
         message = f"Парсер получил ошибку {error}"
+        return self.send_prepared_message(message)
+
+    def send_title_with_error(self, title):
+        message = f"Title, который не прошел: {title}"
         return self.send_prepared_message(message)
 
     def send_message_about_empty_apartment_data(self, page_number):
