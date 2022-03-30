@@ -6,14 +6,16 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('parsing', '0001_initial'),
+        ("parsing", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='marketplace',
-            name='price_per_meter',
-            field=models.CharField(default=0, max_length=255, verbose_name='Класс блока цены за метр'),
+            model_name="marketplace",
+            name="price_per_meter",
+            field=models.CharField(
+                default=0, max_length=255, verbose_name="Класс блока цены за метр"
+            ),
             preserve_default=False,
         ),
     ]

@@ -82,7 +82,7 @@ class ScrapeClient:
             if apartment_data:
                 return apartment_data
             else:
-                self.telegram_client.send_message_about_empty_apartment_data(
+                self.telegram_client.send_final_message_with(
                     page_number
                 )
 
@@ -144,7 +144,6 @@ class MarketPlaceProcessing:
                                     )
                 time.sleep(random.randint(101, 206))
             else:
-                self.telegram_client.send_final_message_with(page_number)
                 break
 
 
@@ -297,11 +296,6 @@ class Telegram:
         message = f"Title, который не прошел: {title}"
         return self.send_prepared_message(message)
 
-    def send_message_about_empty_apartment_data(self, page_number):
-        """Sends a message if parser found no data in response."""
-        message = f"Парсер не получил никаких данных со страницы {page_number}."
-        return self.send_prepared_message(message)
-
     def send_final_message_with(self, page_number):
         """Sends a message after work."""
         message = f"Парсер обошел {page_number} страниц. Больше ничего не найдено."
@@ -320,4 +314,17 @@ def find_in_delta_price(telegram_client):
         url = obj.url
         message = f"Дельта-объект с ценой {price}₽ за метр. Этот объект уже был. Смотри тут: {url}"
         telegram_client.send_prepared_message(message)
-        delta_objects.__next__()
+
+
+def find_and_remove_duplicates():
+    all_duplicates = 0
+    all_apartments = (obj for obj in get_all_apartments())
+    for apartment in all_apartments:
+        apartment = {"url": apartment.url}
+        maybe_duplicate = get_apartment_from_base(apartment)
+        logger_new.debug(f"Проверяю объект {maybe_duplicate}")
+        if maybe_duplicate.count() > 1:
+            maybe_duplicate[0].delete()
+            logger_new.debug("Дубликат удален")
+            all_duplicates += 1
+    logger_new.debug(f"Всего найдено и удалено {all_duplicates} дубликатов")

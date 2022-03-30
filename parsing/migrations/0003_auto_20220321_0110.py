@@ -72,7 +72,6 @@ def get_or_create_market_place(apps, schema_editor):
     )
 
 
-
 class Migration(migrations.Migration):
 
     dependencies = [

@@ -6,7 +6,12 @@ from django.core.management.base import BaseCommand
 from dotenv import load_dotenv
 
 from my_parser.settings import AVITO_HEADERS, START_HOUR, STOP_HOUR, logger_new
-from parsing.service import Avito, Telegram, find_in_delta_price
+from parsing.service import (
+    Avito,
+    Telegram,
+    find_and_remove_duplicates,
+    find_in_delta_price,
+)
 
 load_dotenv()
 
@@ -34,9 +39,14 @@ def start():
     avito = Avito(telegram_client, AVITO_HEADERS)
 
     # If you need to find objects in delta price existing in database - uncomment calling
-    # below and comment avito.processing_market_place() below in while loop:
-    #
+    # below and comment avito.processing_market_place() below in while loop
     # find_in_delta_price(telegram_client)
+
+    # If you need to find duplicate objects in database - uncomment calling
+    # below and comment avito.processing_market_place() below in while loop
+    # find_and_remove_duplicates()
+
+    # Main work code.Comment it to make local changes with database.
 
     while True:
         if its_time_to_run():

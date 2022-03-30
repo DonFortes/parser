@@ -1,10 +1,11 @@
 from datetime import datetime
 
+from my_parser.settings import logger_new
 from parsing.models import Apartment, MarketPlace, Phrase
 
 
 def get_or_create_apartment_object(apartment):
-    """Create Apartment-class object."""
+    """Create Apartment-class object. Get or create for additional duplicate resistance."""
     apartment_object = Apartment.objects.get_or_create(
         name=apartment["name"],
         url=apartment["url"],
@@ -18,7 +19,11 @@ def get_or_create_apartment_object(apartment):
 
 def get_apartment_from_base(apartment):
     """Get apartment from database by url."""
-    apartment_in_base = Apartment.objects.get(url=apartment["url"])
+    apartment_id = None
+    if "avito" in apartment['url']:
+        apartment_id = apartment['url'][-10:-1]
+    # Add here a new type of market if necessary with elif construction
+    apartment_in_base = Apartment.objects.get(url__contains=apartment_id)
     return apartment_in_base
 
 
